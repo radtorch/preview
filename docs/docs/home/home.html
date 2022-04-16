@@ -1,0 +1,31 @@
+<!-- Custom HTML site displayed as the Home chapter -->
+
+{% extends "main.html" %}
+{% block tabs %}
+{{ super() }}
+<section class="md-containerhome">
+    <div class="md-grid md-typeset">
+      <div class="rt-h">
+        <div class="rt-image">
+          <img src="../assets/c.png" draggable="false">
+        </div>
+        <div class="rt-h_content">
+          <h1> RADTorch </h1>
+          <p>Medical imaging machine learning <b>made easy</b> via <b>RADTorch</b>. Explore the endless possiblities now!</p>
+          <a href="./start" title="Get Started" class="md-button">
+            Get started
+          </a>
+          <a href="https://github.com/radtorch/radtorch" title="GitHub" class="md-button">
+            Go to GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+
+
+
+</section>
+
+{% endblock %}
+{% block content %}{% endblock %}
+{% block footer %}{% endblock %}

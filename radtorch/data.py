@@ -291,7 +291,7 @@ class ImageDataset(Dataset): #OK
             try:
                 info.loc[len(info.index)] = [
                     i + " dataset size",
-                    len(self.data_table[i]),
+                    len(self.tables[i]),
                 ]
             except:
                 pass

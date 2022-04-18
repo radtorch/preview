@@ -278,6 +278,25 @@ class ImageDataset(Dataset): #OK
             img = self._normalize(img)
         return img, label_id, uid
 
+    def info(self):
+        """
+        Returns breakdown of different attributes of your dataset.
+        """
+
+        info = pd.DataFrame.from_dict(
+            ({key: str(value) for key, value in self.__dict__.items()}).items()
+        )
+        info.columns = ["Property", "Value"]
+        for i in ["train", "valid", "test"]:
+            try:
+                info.loc[len(info.index)] = [
+                    i + " dataset size",
+                    len(self.data_table[i]),
+                ]
+            except:
+                pass
+        return info
+
     def data_stat(self, plot=True, figsize=(8, 6), cmap="viridis"): #OK
         """
         Displays distribution of classes across subsets as table or plot.

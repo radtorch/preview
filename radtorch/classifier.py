@@ -1,6 +1,7 @@
 import torch
 import pandas as pd
 import seaborn as sns
+from matplotlib.ticker import MaxNLocator
 
 from .utils import *
 from .extractor import *
@@ -225,14 +226,42 @@ class ImageClassifier():
             save_checkpoint(classifier=self, output_file=save_ckpt)
             message(' Trained model saved successfully.')
 
-    def view_train_logs(self, data='all', figsize=(12,8)):
+    # def view_train_logs(self, data='all', figsize=(12,8)):
+    def view_train_logs(self, data='all', figsize=(20,8)):
+        # assert self.type == 'torch', ('Train Logs not available with sklearn classifiers.')
+        # plt.figure(figsize=figsize)
+        # sns.set_style("darkgrid")
+        # if data == 'all': p = sns.lineplot(data = self.train_logs)
+        # else: p = sns.lineplot(data = self.train_logs[data].tolist())
+        # p.set_xlabel("epoch", fontsize = 10)
+        # p.set_ylabel("loss", fontsize = 10);
         assert self.type == 'torch', ('Train Logs not available with sklearn classifiers.')
-        plt.figure(figsize=figsize)
+        df = self.train_logs
         sns.set_style("darkgrid")
-        if data == 'all': p = sns.lineplot(data = self.train_logs)
-        else: p = sns.lineplot(data = self.train_logs[data].tolist())
-        p.set_xlabel("epoch", fontsize = 10)
-        p.set_ylabel("loss", fontsize = 10);
+        sns.set(rc = {'figure.figsize':figsize})
+        plot_sets = {
+          'loss': ['train_loss', 'valid_loss'],
+          'accuracy': ['train_acc', 'valid_acc'],
+          'train': ['train_loss', 'train_acc'],
+          'valid': ['valid_loss', 'valid_acc'],
+        }
+        if data == 'all':
+          fig, ax = plt.subplots(1,2)
+          l = sns.lineplot(data = df[plot_sets['loss']], ax=ax[0])
+          a = sns.lineplot(data = df[plot_sets['accuracy']], ax=ax[1])
+          a.set_xlabel("epoch", fontsize = 10)
+          l.set_xlabel("epoch", fontsize = 10)
+          a.set_ylabel("accuracy", fontsize = 10);
+          l.set_ylabel("loss", fontsize = 10);
+          l.yaxis.set_major_locator(MaxNLocator(integer=True))
+          a.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+        else:
+          p = sns.lineplot(data = df[plot_sets[data]])
+          p.set_xlabel("epoch", fontsize = 10)
+          p.set_ylabel(data, fontsize = 10);
+          p.yaxis.set_major_locator(MaxNLocator(integer=True))
+
 
     def _are_models_equal(self, model_1, model_2):
         # https://discuss.pytorch.org/t/two-models-with-same-weights-different-results/8918/6

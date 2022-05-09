@@ -38,7 +38,7 @@ def train_neural_network(model, dataloader, optimizer, criterion, scheduler, dev
     # epoch_loss = train_loss/len(dataloader) # average of train loss per epoch divided by number of samples in train dataset
     # epoch_acc = 100. * (train_acc / len(dataloader))
     epoch_loss = running_loss / len(dataloader.dataset)
-    epoch_acc = 100*(running_correct.double() / len(dataloader.dataset))
+    epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
     return epoch_loss, epoch_acc
 
 
@@ -61,7 +61,7 @@ def validate_neural_network(model, dataloader, optimizer, criterion, device, ran
     # epoch_loss = valid_loss/ len(dataloader.dataset)
     # epoch_acc = 100. * (valid_acc / len(dataloader))
     epoch_loss = running_loss / len(dataloader.dataset)
-    epoch_acc = 100*(running_correct.double() / len(dataloader.dataset))
+    epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
     return epoch_loss, epoch_acc
 
 
@@ -166,7 +166,12 @@ def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target
     if classifier.valid_loss_min > classifier.target_valid_loss:
         message(current_time()+" CAUTION: Achieved minimum validation loss "+str(classifier.valid_loss_min), " is not less than the set target loss of "+str(classifier.target_valid_loss), gui)
 
-    classifier.train_logs=pd.DataFrame({"train": classifier.train_losses, "valid" : classifier.valid_losses})
+    # classifier.train_logs=pd.DataFrame({"train": classifier.train_losses, "valid" : classifier.valid_losses})
+    classifier.train_logs=pd.DataFrame({"train_loss": classifier.train_losses,
+                                        "valid_loss" : classifier.valid_losses,
+                                        "train_acc" : classifier.train_acc,
+                                        "valid_acc" : classifier.valid_acc
+                                        })
 
 
 def pass_image_via_nn(tensor, model, device, output='logits', top_k=1):

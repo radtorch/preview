@@ -1,10 +1,11 @@
 import os, pydicom, torch, torchvision, glob, scipy.ndimage
 import numpy as np
 import pandas as pd
-
 import SimpleITK as sitk
+
 from PIL import Image
 from pathlib import Path
+from tqdm.notebook import tqdm
 
 
 from .general import *

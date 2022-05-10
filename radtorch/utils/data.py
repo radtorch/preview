@@ -197,7 +197,7 @@ def list_all_files(root, file_ext='dcm'):
     Returns a list of all files of a certain file type in a certain directory and subdirectories.
     '''
     file_list=[]
-    for root, dirs, files in os.walk(folder, topdown=False):
+    for root, dirs, files in os.walk(root, topdown=False):
             for name in files:
                 if name.endswith(file_ext):
                     file_list.append(os.path.join(root, name))

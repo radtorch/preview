@@ -111,8 +111,9 @@ class ImageClassifier():
             if not name: self.name = current_time()+'_classifier_'
             else: self.name = name
 
-            if str(type(model))[8:].startswith('sklearn'):
-
+            # if str(type(model))[8:].startswith('sklearn'):
+            if 'sklearn' in str(type(model)):
+    
                 self.type, self.feature_extractors = 'sklearn', {i:FeatureExtractor(model_arch=feature_extractor_arch, dataset=dataset, subset=i) for i in dataset.loaders.keys()}
 
                 # self.type, self.feature_extractors = 'sklearn', {i:FeatureExtractor(model_arch=feature_extractor_arch, dataset=dataset, subset=i) for i in ['train', 'valid', 'test']}

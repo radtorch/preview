@@ -41,7 +41,8 @@ class XAI():
         plt.show()
 
     def CAM(self, img_path, target_layers, type='fullgrad', plot=True, export=False, prediction=True, figsize=(15,5), alpha=0.5, cmap='jet',):
-        input_tensor = image_to_tensor(img_path=img_path, transforms=self.dataset.transform['valid'], extension=self.dataset.extension, out_channels=self.dataset.out_channels, WW=self.dataset.WW, WL = self.dataset.WL).to(self.device)
+        input_tensor = image_to_tensor(path=img_path, transforms=self.dataset.transform['valid'], out_channels=self.dataset.out_channels, WW=self.dataset.WW, WL = self.dataset.WL).to(self.device)
+        input_tensor = torch.unsqueeze(input_tensor, 0)
         assert type in ['gradcam', 'xgradcam', 'scorecam', 'gradcamplusplus', 'ablation', 'eigen', 'eigengrad', 'layercam', 'fullgrad'], 'CAM type selected is not in supported list.'
         if type == 'gradcam': wrapped_model = GradCAM(model=self.model, target_layers=target_layers, use_cuda=self.use_cuda)
         elif type == 'xgradcam': wrapped_model = XGradCAM(model=self.model, target_layers=target_layers, use_cuda=self.use_cuda)

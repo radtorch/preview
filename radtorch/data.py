@@ -136,7 +136,7 @@ class ImageDataset(Dataset): #OK
 
     """
 
-    def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle=True,weighted_sampler=False,num_workers=0,): #OK
+    def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,class_subset=False, out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle=True,weighted_sampler=False,num_workers=0,): #OK
 
         set_random_seed(random_state)
 
@@ -190,6 +190,12 @@ class ImageDataset(Dataset): #OK
             self.classes, self.class_to_idx = find_classes(self.root)
             self.table = dicom_images_to_table(self.root, self.extension, self.path_col, self.label_col)
             assert (len(self.table) > 0), "No .{:} files were found in {:}. Please check.".format(self.extension, self.root)
+
+        if class_subset:
+            # User can select a certain subclasses of all classes to train the model
+            self.table = self.table[self.table[self.label_col].isin(class_subset)]
+            self.classes, self.class_to_idx = class_subset, {c: i for i, c in enumerate(class_subset)}
+
 
         # Filter out zero images
         if self.ignore_zero_img: self.table = check_zero_image(self.table, self.path_col)

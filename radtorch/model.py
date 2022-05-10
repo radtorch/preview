@@ -215,10 +215,17 @@ class ModelBase(object): #OK
             for p in self.model.fc.parameters(): p.requires_grad = True
 
         elif 'dense' in self.model_arch:
-            if in_channels != 3:
+            if self.in_channels != 3:
                 self.model.features.conv0 = nn.Conv2d(self.in_channels, dense_conv0_out_features[self.model_arch[-3:]], kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
             self.model.classifier =  nn.Linear(in_features=dense_classifier_in_features[self.model_arch[-3:]], out_features=self.out_classes, bias=True)
 
+            for p in self.model.classifier.parameters(): p.requires_grad = True
+
+        elif 'efficient' in self.model_arch:
+            version=self.model_arch.split('_')[-1]
+            if self.in_channels != 3:
+                self.model.features[0][0] = nn.Conv2d(self.in_channels, efficient_input_output[version][0], kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+            self.model.classifier[1] =  nn.Linear(in_features=efficient_input_output[version][1], out_features=self.out_classes, bias=True)
             for p in self.model.classifier.parameters(): p.requires_grad = True
 
         if self.unfreeze_all:

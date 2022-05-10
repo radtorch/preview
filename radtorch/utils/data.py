@@ -216,7 +216,7 @@ def extract_dicom_tags(root, tags, file_ext='dcm'):
     output = pd.DataFrame()
     output['file'] = list_all_files(root, file_ext)
     tag_info={x: [] for x in tags}
-    for f in tqdm(all_files):
+    for f in tqdm(output['file']):
         header = pydicom.dcmread(f, stop_before_pixels=True)
         for t in tags:
             try:

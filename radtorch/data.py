@@ -249,7 +249,7 @@ class ImageDataset(Dataset): #OK
 
         # Code below is adapted and modified from https://github.com/ptrblck/pytorch_misc/blob/master/weighted_sampling.py
         # See this discussion for how to implement WeightedRandomSampler: https://discuss.pytorch.org/t/is-weightedsampler-really-useful/40057/2
-        target_train_labels = torch.tensor([self.class_to_idx[x] for x in self.table_train.label.tolist()])
+        target_train_labels = torch.tensor([self.class_to_idx[x] for x in self.table_train[self.label_col].tolist()])
         class_sample_count = torch.tensor(
             [(target_train_labels == t).sum() for t in torch.unique(target_train_labels, sorted=True)])
         weight = 1. / class_sample_count.float()

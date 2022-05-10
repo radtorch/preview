@@ -190,3 +190,38 @@ def image_to_tensor(path,  out_channels=1, transforms=None, WW=None, WL=None): #
         img = transforms(img)
     # img = img.unsqueeze(0)
     return img.float()
+
+
+def list_all_files(root, file_ext='dcm'):
+    '''
+    Returns a list of all files of a certain file type in a certain directory and subdirectories.
+    '''
+    file_list=[]
+    for root, dirs, files in os.walk(folder, topdown=False):
+            for name in files:
+                if name.endswith(file_ext):
+                    file_list.append(os.path.join(root, name))
+    return file_list
+
+
+def extract_dicom_tags(root, tags, file_ext='dcm'):
+    '''
+    Extracts specific DICOM tags from all files with specific extension in a given root/directory
+
+    Returns padnas dataframe with all tags as columns.
+
+    Code referenced and modified from https://www.kaggle.com/code/eduardofarina/welcome-to-the-competition-eda
+    '''
+    output = pd.DataFrame()
+    output['file'] = list_all_files(root, file_ext)
+    tag_info={x: [] for x in tags}
+    for f in tqdm(all_files):
+        header = pydicom.dcmread(f, stop_before_pixels=True)
+        for t in tags:
+            try:
+                tag_info[t].append(header.data_element(t).value)
+            except:
+                tag_info[t].append('Tag Not Found')
+    for k, v in tag_info.items():
+        output[k] = v
+    return output

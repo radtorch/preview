@@ -113,7 +113,7 @@ class ImageClassifier():
 
             # if str(type(model))[8:].startswith('sklearn'):
             if 'sklearn' in str(type(model)):
-    
+
                 self.type, self.feature_extractors = 'sklearn', {i:FeatureExtractor(model_arch=feature_extractor_arch, dataset=dataset, subset=i) for i in dataset.loaders.keys()}
 
                 # self.type, self.feature_extractors = 'sklearn', {i:FeatureExtractor(model_arch=feature_extractor_arch, dataset=dataset, subset=i) for i in ['train', 'valid', 'test']}
@@ -227,7 +227,6 @@ class ImageClassifier():
             save_checkpoint(classifier=self, output_file=save_ckpt)
             message(' Trained model saved successfully.')
 
-    # def view_train_logs(self, data='all', figsize=(12,8)):
     def view_train_logs(self, data='all', figsize=(20,8)):
         # assert self.type == 'torch', ('Train Logs not available with sklearn classifiers.')
         # plt.figure(figsize=figsize)
@@ -262,7 +261,6 @@ class ImageClassifier():
           p.set_xlabel("epoch", fontsize = 10)
           p.set_ylabel(data, fontsize = 10);
           p.yaxis.set_major_locator(MaxNLocator(integer=True))
-
 
     def _are_models_equal(self, model_1, model_2):
         # https://discuss.pytorch.org/t/two-models-with-same-weights-different-results/8918/6

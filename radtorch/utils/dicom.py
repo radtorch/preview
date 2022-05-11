@@ -31,7 +31,7 @@ def wl_arr(arr, WW, WL):
     X = np.clip(arr.copy(), lower, upper)
     return X
 
-def dicom_image_processor(file_path, out_channels=None, WW=None, WL=None):
+def dicom_image_processor(file_path, out_channels=None, WW=None, WL=None, fix_monochrome=True):
     '''
     Processes DICOM images. Uses a DICOM file and returns tuple of numpy array, image minimum value and image maximum value
     '''
@@ -56,6 +56,10 @@ def dicom_image_processor(file_path, out_channels=None, WW=None, WL=None):
                 img = np.dstack(channels)
     else:
         arr = data.pixel_array
+        if "PhotometricInterpretation" in data:
+            if fix_monochrome:
+                if data.PhotometricInterpretation == "MONOCHROME1":
+                    arr = np.amax(arr) - arr
         if out_channels == 3:
                 channels = [arr for c in range(out_channels)]
                 img = np.dstack(channels)

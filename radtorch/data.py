@@ -136,7 +136,7 @@ class ImageDataset(Dataset): #OK
 
     """
 
-    def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,class_subset=False, out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle=True,weighted_sampler=False,num_workers=0,): #OK
+    def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,class_subset=False, out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle_train=True,shuffle_valid=False,weighted_sampler=False,num_workers=0,): #OK
 
         set_random_seed(random_state)
 
@@ -163,7 +163,8 @@ class ImageDataset(Dataset): #OK
         self.normalize = normalize
 
         self.batch_size = batch_size
-        self.shuffle = shuffle
+        self.shuffle_train = shuffle_train
+        self.shuffle_valid = shuffle_valid
         self.num_workers = num_workers
 
         # Assign name for the dataset object
@@ -232,7 +233,7 @@ class ImageDataset(Dataset): #OK
 
             self.dataset_train = torch.utils.data.Subset(self, self.idx_train)
             self.dataset_valid = torch.utils.data.Subset(self, self.idx_valid)
-            self.dataloader_valid = torch.utils.data.DataLoader(self.dataset_valid,batch_size=self.batch_size,shuffle=False,num_workers=self.num_workers,)
+            self.dataloader_valid = torch.utils.data.DataLoader(self.dataset_valid,batch_size=self.batch_size,shuffle=self.shuffle_valid,num_workers=self.num_workers,)
 
             self.datasets["valid"] = self.dataset_valid
             self.loaders["valid"] = self.dataloader_valid
@@ -258,10 +259,10 @@ class ImageDataset(Dataset): #OK
 
         if weighted_sampler:
             sampler = torch.utils.data.sampler.WeightedRandomSampler(self.sampler_weight, len(self.sampler_weight))
-            self.dataloader_train = torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle,num_workers=self.num_workers,sampler=sampler,)
+            self.dataloader_train = torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle_train,num_workers=self.num_workers,sampler=sampler,)
 
         else:
-            self.dataloader_train = torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle,num_workers=self.num_workers,)
+            self.dataloader_train = torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle_train,num_workers=self.num_workers,)
 
         self.datasets["train"] = self.dataset_train
         self.loaders["train"] = self.dataloader_train

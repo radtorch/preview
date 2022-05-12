@@ -10,60 +10,106 @@ from torchinfo import summary
 
 
 
-def train_neural_network(model, dataloader, optimizer, criterion, scheduler, device, random_seed):
+def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, device, random_seed, phase):
     #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
     set_random_seed(random_seed)
     running_loss = 0.0
-    running_correct = 0
-    model.train()
-    for i, (images, labels, uid) in enumerate(dataloader):
-        images, labels = images.to(device), labels.to(device)
-        optimizer.zero_grad()
-        outputs = model(images.float())
+    running_correct = 0.0
+    total = 0.0
 
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        if scheduler:
-            for s in scheduler:
-                if s.__class__.__name__ in ['OneCycleLR', 'CyclicLR']:
-                    s.step()
-
-        _, preds = torch.max(outputs.data, 1)
-        running_loss += loss.item()*images.size(0)
-        running_correct += torch.sum(preds == labels.data)
-        # train_acc += (preds == labels).sum().item()
-
-    # epoch_loss = train_loss/len(dataloader) # average of train loss per epoch divided by number of samples in train dataset
-    # epoch_acc = 100. * (train_acc / len(dataloader))
-    epoch_loss = running_loss / len(dataloader.dataset)
-    epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
-    return epoch_loss, epoch_acc
-
-
-def validate_neural_network(model, dataloader, optimizer, criterion, device, random_seed):
-    #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
-    set_random_seed(random_seed)
-    running_loss = 0.0
-    running_correct = 0
-    model.eval()
-    with torch.no_grad():
+    if phase == 'train':
+        model.train()
         for i, (images, labels, uid) in enumerate(dataloader):
             images, labels = images.to(device), labels.to(device)
+            optimizer.zero_grad()
             outputs = model(images.float())
             loss = criterion(outputs, labels)
-            # valid_loss += loss.item()
-            _, preds = torch.max(outputs.data, 1)
-            # valid_acc += (preds == labels).sum().item()
-            running_loss += loss.item()*images.size(0)
-            running_correct += torch.sum(preds == labels.data)
-    # epoch_loss = valid_loss/ len(dataloader.dataset)
-    # epoch_acc = 100. * (valid_acc / len(dataloader))
-    epoch_loss = running_loss / len(dataloader.dataset)
-    epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
-    return epoch_loss, epoch_acc
+            loss.backward()
+            optimizer.step()
+            if scheduler:
+                for s in scheduler:
+                    if s.__class__.__name__ in ['OneCycleLR', 'CyclicLR']:
+                        s.step()
 
+            _, preds = torch.max(outputs.data, 1)
+            running_loss += loss.item()
+            running_correct += torch.sum(preds == labels.data)
+            running_total += len(labels.data)
+
+    elif phase == 'valid':
+        model.eval()
+        with torch.no_grad():
+            for i, (images, labels, uid) in enumerate(dataloader):
+                images, labels = images.to(device), labels.to(device)
+                outputs = model(images.float())
+                loss = criterion(outputs, labels)
+                _, preds = torch.max(outputs.data, 1)
+                running_loss += loss.item()
+                running_correct += torch.sum(preds == labels.data)
+                running_total += len(labels.data)
+
+    loss = running_loss / len(dataloader)
+    accuracy = (running_correct.double() / len(dataloader.dataset)).item()
+    return loss, accuracy, running_correct.double(), total
+
+#
+# def train_neural_network(model, dataloader, optimizer, criterion, scheduler, device, random_seed):
+#     #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+#     set_random_seed(random_seed)
+#     running_loss = 0.0
+#     running_correct = 0
+#     model.train()
+#     for i, (images, labels, uid) in enumerate(dataloader):
+#         images, labels = images.to(device), labels.to(device)
+#         optimizer.zero_grad()
+#         outputs = model(images.float())
+#
+#         loss = criterion(outputs, labels)
+#         loss.backward()
+#         optimizer.step()
+#
+#         if scheduler:
+#             for s in scheduler:
+#                 if s.__class__.__name__ in ['OneCycleLR', 'CyclicLR']:
+#                     s.step()
+#
+#         _, preds = torch.max(outputs.data, 1) #return the index of the label with max output for each instance in batch
+#         # running_loss += loss.item()*images.size(0)
+#         running_loss += loss.item()
+#         running_correct += torch.sum(preds == labels.data)
+#         # train_acc += (preds == labels).sum().item()
+#
+#     # epoch_loss = train_loss/len(dataloader) # average of train loss per epoch divided by number of samples in train dataset
+#     # epoch_acc = 100. * (train_acc / len(dataloader))
+#
+#     # epoch_loss = running_loss / len(dataloader.dataset)
+#     epoch_loss = running_loss / len(dataloader)
+#     # epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
+#     epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
+#     return epoch_loss, epoch_acc
+#
+# def validate_neural_network(model, dataloader, optimizer, criterion, device, random_seed):
+#     #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+#     set_random_seed(random_seed)
+#     running_loss = 0.0
+#     running_correct = 0
+#     model.eval()
+#     with torch.no_grad():
+#         for i, (images, labels, uid) in enumerate(dataloader):
+#             images, labels = images.to(device), labels.to(device)
+#             outputs = model(images.float())
+#             loss = criterion(outputs, labels)
+#             # valid_loss += loss.item()
+#             _, preds = torch.max(outputs.data, 1)
+#             # valid_acc += (preds == labels).sum().item()
+#             running_loss += loss.item()*images.size(0)
+#             running_correct += torch.sum(preds == labels.data)
+#     # epoch_loss = valid_loss/ len(dataloader.dataset)
+#     # epoch_acc = 100. * (valid_acc / len(dataloader))
+#     epoch_loss = running_loss / len(dataloader.dataset)
+#     epoch_acc = 100*(running_correct.double() / len(dataloader.dataset)).item()
+#     return epoch_loss, epoch_acc
+#
 
 def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target_valid_loss='lowest', auto_save_ckpt=False, verbose=2):
 
@@ -92,12 +138,15 @@ def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target
 
     for e in tqdm(range(start_epoch,epochs), desc='Traninig Model: '):
 
-        epoch_train_loss, epoch_train_acc = train_neural_network(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed)
+        # epoch_train_loss, epoch_train_acc = train_neural_network(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed)
+        epoch_train_loss, epoch_train_acc, epoch_train_correct, epoch_train_total  = forward_pass_dataloader(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed, phase='train')
+
         classifier.train_losses.append(epoch_train_loss)
         classifier.train_acc.append(epoch_train_acc)
 
         if valid:
-            epoch_valid_loss, epoch_valid_acc = validate_neural_network(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.device, classifier.random_seed)
+            # epoch_valid_loss, epoch_valid_acc = validate_neural_network(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.device, classifier.random_seed)
+            epoch_valid_loss, epoch_valid_acc, epoch_valid_correct, epoch_valid_total = forward_pass_dataloader(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.scheduler, classifier.device, classifier.random_seed, phase='valid')
             classifier.valid_losses.append(epoch_valid_loss)
             classifier.valid_acc.append(epoch_valid_acc)
 
@@ -131,7 +180,7 @@ def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target
                             " t_loss: {:.5f} |".format(epoch_train_loss)+
                             " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)+
                             " t_acc: {:.5f} |".format(epoch_train_acc)+
-                            " v_acc: {:.5f} |".format(epoch_valid_acc)
+                            " v_acc: {:.5f} ({:4}/{:4})".format(epoch_valid_acc, epoch_valid_correct, epoch_valid_total)
                             )
                 elif verbose == 1:
                     message (

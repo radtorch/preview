@@ -45,98 +45,98 @@ class ImageObject(): #OK
 
 class ImageDataset(Dataset): #OK
 
-    """
-    Creates pytorch dataset(s) and dataloader(s) objects from a parent folder. Use this class for image tasks that invovles handling each single image as a single instance of your dataset.
-
-    Examples:
-
-        ```python
-        import radtorch
-        import albumentations as A
-
-        # Specify image transformations
-        T = A.Compose([A.Resize(256,256)])
-
-        # Create dataset object
-        ds = radtorch.data.ImageDataset(
-                                        folder='data/4CLASS/',
-                                        split={'valid':0.2, 'test':0.2},
-                                        out_channels=1,
-                                        transforms={'train':T,'valid': T,'test': T},
-                                         )
-
-        ds.data_stat()
-        ```
-        <div style="text-align:center"><img src="../assets/5.png" style="width:50%; height:50%" /></div>
-
-        ```python
-        ds.table
-        ```
-        <div style="text-align:center"><img src="../assets/6.png" style="width:50%; height:50%" /></div>
-
-
-    Parameters:
-
-        folder (str): Parent folder containing images. `radtorch.ImageDataset` expects images to be arranged in the following structure:
-            ```
-            root/
-                class_1/
-                        image_1
-                        image_2
-                        ...
-                class_2/
-                        image_1
-                        image_2
-                        ...
-            ```
-
-        name (str, optional): Name to be give to the dataset. If none provided, the current date and time will be used to created a generic dataset name. (default=None)
-        label_table (str|dataframe, optional): The table containing data labels for your images. Expected table should contain at least 2 columns: image path column and a label column. Table can be string path to CSV or a pandas dataframe object.(default=None)
-        instance_id (bool, optional): True if the data provided in the image path column in label_table contains the image id not the absolute path for the image. (default= False)
-        add_extension (bool, optional): If instance_id =True, use this to add extension to image path as needed. Extension must be provided without "." e.g. "dcm". (default=False)
-        out_channels (int, optional): Number of output channels. (default=1)
-        WW (int or list, optional): Window width for DICOM images. Single value if using 1 channel or list of 3 values for 3 channels. See [https://radiopaedia.org/articles/windowing-ct](https://radiopaedia.org/articles/windowing-ct).
-        WL (int or list, optional): Window level for DICOM images. Single value if using 1 channel or list of 3 values for 3 channels. See [https://radiopaedia.org/articles/windowing-ct](https://radiopaedia.org/articles/windowing-ct).
-        path_col (str, optional): Name of the column containing image path data in the label_table. (default='path')
-        label_col (str, optional): Name of the column containing label data in the label_table. (default='label')
-        extension (str, optional): Type/Extension of images. (default='dcm')
-        transforms (dict, optional): Dictionary of Albumentations transformations in the form of {'train': .. , 'valid': .. , 'test': .. }. See https://albumentations.ai/docs/getting_started/image_augmentation/ . (default=None)
-        random_state (int, optional): Random seed (default=100)
-        sample (float, optional): Sample or percent of the overall data to be used. (default=1.0)
-        split (dict): dictionary defining how data will be split for training/validation/testing. Follows the sturcture {'valid': float, 'test': float} or {'valid':'float'} in case no testing subset is needed. The percent of the training subset is infered automatically.
-        ignore_zero_img (bool, optional): True to ignore images containig all zero pixels. (default=False)
-        normalize (bool, optional): True to normalize image data between 0 and 1. (default=True)
-        batch_size (int, optional): Dataloader batch size. (default = 16)
-        shuffle (bool, optional): True to shuffle images during training. (default=True)
-        weighted_sampler (bool, optional): True to use a weighted sampler for unbalanced datasets. See https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler. (default=False)
-        num_workers (int, optional): Dataloader CPU workers. (default = 0)
-
-
-    Attributes:
-        classes (list): List of generated classes/labels.
-        class_to_idx (dict): Dictionary of generated classes/labels and corresponding class/label id.
-        idx_train (list): List of index values of images/instances used for training subset. These refer to index of `ImageDataset.table`.
-        idx_valid (list):List of index values of images/instances used for validation subset. These refer to index of `ImageDataset.table`.
-        idx_test (list): List of index values of images/instances used for testing subset. These refer to index of `ImageDataset.table`.
-        table (pandas dataframe): Table of images , paths and their labels.
-        table_train (pandas dataframe): Table of images used for training. Subset of `ImageDataset.table`.
-        table_valid (pandas dataframe): Table of images used for validation. Subset of `ImageDataset.table`.
-        table_test (pandas dataframe): Table of images used for testing. Subset of `ImageDataset.table`.
-        tables (dict): Dictionary of all generated tables in the form of: {'train': table, 'valid':table, 'test':table}.
-        dataset_train (pytorch dataset object): Training [pytorch Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)
-        dataset_valid (pytorch dataset object): Validation [pytorch Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)
-        dataset_test (pytorch dataset object): Testing [pytorch Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)
-        datasets (dict): Dictionary of all generated Datasets in the form of: {'train': Dataset, 'valid':Dataset, 'test':Dataset}.
-        dataloader_train (pytorch dataloader object): Training [pytorch DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
-        dataloader_valid (pytorch dataloader object): Validation [pytorch DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
-        dataloader_test (pytorch dataloader object): Testing [pytorch DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
-        dataloaders (dict): Dictionary of all generated Dataloaders in the form of: {'train': Dataloader, 'valid':Dataloader, 'test':Dataloader}.
-        class_weights (tensor): Values of class weights, for imbalanced datasets, to be used to weight loss functions. See [https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss](https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss).
-        sampler_weights (tensor): Values of vlass weights, for imbalanced datasets, to be used to sample from the dataset using Pytroch WeightedRandomSampler. Affects only training dataset not validation or testing. See [https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler](https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler)
-
-    """
-
     def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,class_subset=False, out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle_train=True,shuffle_valid=False,weighted_sampler=False,num_workers=0,): #OK
+
+        """
+        Creates pytorch dataset(s) and dataloader(s) objects from a parent folder. Use this class for image tasks that invovles handling each single image as a single instance of your dataset.
+
+        Examples:
+
+            ```python
+            import radtorch
+            import albumentations as A
+
+            # Specify image transformations
+            T = A.Compose([A.Resize(256,256)])
+
+            # Create dataset object
+            ds = radtorch.data.ImageDataset(
+                                            folder='data/4CLASS/',
+                                            split={'valid':0.2, 'test':0.2},
+                                            out_channels=1,
+                                            transforms={'train':T,'valid': T,'test': T},
+                                             )
+
+            ds.data_stat()
+            ```
+            <div style="text-align:center"><img src="../assets/5.png" style="width:50%; height:50%" /></div>
+
+            ```python
+            ds.table
+            ```
+            <div style="text-align:center"><img src="../assets/6.png" style="width:50%; height:50%" /></div>
+
+
+        Parameters:
+
+            folder (str): Parent folder containing images. `radtorch.ImageDataset` expects images to be arranged in the following structure:
+                ```
+                root/
+                    class_1/
+                            image_1
+                            image_2
+                            ...
+                    class_2/
+                            image_1
+                            image_2
+                            ...
+                ```
+
+            name (str, optional): Name to be give to the dataset. If none provided, the current date and time will be used to created a generic dataset name. (default=None)
+            label_table (str|dataframe, optional): The table containing data labels for your images. Expected table should contain at least 2 columns: image path column and a label column. Table can be string path to CSV or a pandas dataframe object.(default=None)
+            instance_id (bool, optional): True if the data provided in the image path column in label_table contains the image id not the absolute path for the image. (default= False)
+            add_extension (bool, optional): If instance_id =True, use this to add extension to image path as needed. Extension must be provided without "." e.g. "dcm". (default=False)
+            out_channels (int, optional): Number of output channels. (default=1)
+            WW (int or list, optional): Window width for DICOM images. Single value if using 1 channel or list of 3 values for 3 channels. See [https://radiopaedia.org/articles/windowing-ct](https://radiopaedia.org/articles/windowing-ct).
+            WL (int or list, optional): Window level for DICOM images. Single value if using 1 channel or list of 3 values for 3 channels. See [https://radiopaedia.org/articles/windowing-ct](https://radiopaedia.org/articles/windowing-ct).
+            path_col (str, optional): Name of the column containing image path data in the label_table. (default='path')
+            label_col (str, optional): Name of the column containing label data in the label_table. (default='label')
+            extension (str, optional): Type/Extension of images. (default='dcm')
+            transforms (dict, optional): Dictionary of Albumentations transformations in the form of {'train': .. , 'valid': .. , 'test': .. }. See https://albumentations.ai/docs/getting_started/image_augmentation/ . (default=None)
+            random_state (int, optional): Random seed (default=100)
+            sample (float, optional): Sample or percent of the overall data to be used. (default=1.0)
+            split (dict): dictionary defining how data will be split for training/validation/testing. Follows the sturcture {'valid': float, 'test': float} or {'valid':'float'} in case no testing subset is needed. The percent of the training subset is infered automatically.
+            ignore_zero_img (bool, optional): True to ignore images containig all zero pixels. (default=False)
+            normalize (bool, optional): True to normalize image data between 0 and 1. (default=True)
+            batch_size (int, optional): Dataloader batch size. (default = 16)
+            shuffle (bool, optional): True to shuffle images during training. (default=True)
+            weighted_sampler (bool, optional): True to use a weighted sampler for unbalanced datasets. See https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler. (default=False)
+            num_workers (int, optional): Dataloader CPU workers. (default = 0)
+
+
+        Attributes:
+            classes (list): List of generated classes/labels.
+            class_to_idx (dict): Dictionary of generated classes/labels and corresponding class/label id.
+            idx_train (list): List of index values of images/instances used for training subset. These refer to index of `ImageDataset.table`.
+            idx_valid (list):List of index values of images/instances used for validation subset. These refer to index of `ImageDataset.table`.
+            idx_test (list): List of index values of images/instances used for testing subset. These refer to index of `ImageDataset.table`.
+            table (pandas dataframe): Table of images , paths and their labels.
+            table_train (pandas dataframe): Table of images used for training. Subset of `ImageDataset.table`.
+            table_valid (pandas dataframe): Table of images used for validation. Subset of `ImageDataset.table`.
+            table_test (pandas dataframe): Table of images used for testing. Subset of `ImageDataset.table`.
+            tables (dict): Dictionary of all generated tables in the form of: {'train': table, 'valid':table, 'test':table}.
+            dataset_train (pytorch dataset object): Training [pytorch Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)
+            dataset_valid (pytorch dataset object): Validation [pytorch Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)
+            dataset_test (pytorch dataset object): Testing [pytorch Dataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)
+            datasets (dict): Dictionary of all generated Datasets in the form of: {'train': Dataset, 'valid':Dataset, 'test':Dataset}.
+            dataloader_train (pytorch dataloader object): Training [pytorch DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
+            dataloader_valid (pytorch dataloader object): Validation [pytorch DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
+            dataloader_test (pytorch dataloader object): Testing [pytorch DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
+            dataloaders (dict): Dictionary of all generated Dataloaders in the form of: {'train': Dataloader, 'valid':Dataloader, 'test':Dataloader}.
+            class_weights (tensor): Values of class weights, for imbalanced datasets, to be used to weight loss functions. See [https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss](https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss).
+            sampler_weights (tensor): Values of vlass weights, for imbalanced datasets, to be used to sample from the dataset using Pytroch WeightedRandomSampler. Affects only training dataset not validation or testing. See [https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler](https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler)
+
+        """
 
         set_random_seed(random_state)
 

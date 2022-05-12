@@ -34,7 +34,7 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
             _, preds = torch.max(outputs.data, 1)
             running_loss += loss.item()
             running_correct += torch.sum(preds == labels.data)
-            running_total += len(labels.data)
+            total += len(labels.data)
 
     elif phase == 'valid':
         model.eval()
@@ -46,7 +46,7 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
                 _, preds = torch.max(outputs.data, 1)
                 running_loss += loss.item()
                 running_correct += torch.sum(preds == labels.data)
-                running_total += len(labels.data)
+                total += len(labels.data)
 
     loss = running_loss / len(dataloader)
     accuracy = (running_correct.double() / len(dataloader.dataset)).item()

@@ -7,15 +7,16 @@ import torch.nn as nn
 import numpy as np
 from tqdm.notebook import tqdm
 from torchinfo import summary
-
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, device, random_seed, phase):
     #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
     set_random_seed(random_seed)
     running_loss = 0.0
     running_correct = 0.0
-    total = 0.0
+    total = 0
+    total_labels = []
+    total_preds = []
 
     if phase == 'train':
         model.train()
@@ -30,10 +31,11 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
                 for s in scheduler:
                     if s.__class__.__name__ in ['OneCycleLR', 'CyclicLR']:
                         s.step()
-
             _, preds = torch.max(outputs.data, 1)
             running_loss += loss.item()
             running_correct += torch.sum(preds == labels.data)
+            total_labels += labels.cpu().numpy().tolist()
+            total_preds += preds.cpu().numpy().tolist()
             total += len(labels.data)
 
     elif phase == 'valid':
@@ -46,11 +48,13 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
                 _, preds = torch.max(outputs.data, 1)
                 running_loss += loss.item()
                 running_correct += torch.sum(preds == labels.data)
+                total_labels += labels.cpu().numpy().tolist()
+                total_preds += preds.cpu().numpy().tolist()
                 total += len(labels.data)
 
     loss = running_loss / len(dataloader)
     accuracy = (running_correct.double() / len(dataloader.dataset)).item()
-    return loss, accuracy, running_correct.double(), total
+    return loss, accuracy, running_correct, total, total_labels, total_preds
 
 #
 # def train_neural_network(model, dataloader, optimizer, criterion, scheduler, device, random_seed):
@@ -111,7 +115,7 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
 #     return epoch_loss, epoch_acc
 #
 
-def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target_valid_loss='lowest', auto_save_ckpt=False, verbose=2):
+def fit_neural_network(classifier, valid_metric, epochs=20, valid=True, print_every= 1, target_valid_loss='lowest', auto_save_ckpt=False, verbose=2):
 
     if hasattr (classifier, 'current_epoch'):
         start_epoch=classifier.current_epoch+1
@@ -123,6 +127,7 @@ def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target
         start_epoch=0
         classifier.train_losses, classifier.valid_losses = [], []
         classifier.train_acc, classifier.valid_acc = [], []
+        classifier.valid_metric = []
         classifier.valid_loss_min = np.Inf
 
         if target_valid_loss == 'lowest':
@@ -139,16 +144,18 @@ def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target
     for e in tqdm(range(start_epoch,epochs), desc='Traninig Model: '):
 
         # epoch_train_loss, epoch_train_acc = train_neural_network(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed)
-        epoch_train_loss, epoch_train_acc, epoch_train_correct, epoch_train_total  = forward_pass_dataloader(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed, phase='train')
+        epoch_train_loss, epoch_train_acc, epoch_train_correct, epoch_train_total, train_labels, train_preds  = forward_pass_dataloader(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed, phase='train')
 
         classifier.train_losses.append(epoch_train_loss)
         classifier.train_acc.append(epoch_train_acc)
 
         if valid:
             # epoch_valid_loss, epoch_valid_acc = validate_neural_network(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.device, classifier.random_seed)
-            epoch_valid_loss, epoch_valid_acc, epoch_valid_correct, epoch_valid_total = forward_pass_dataloader(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.scheduler, classifier.device, classifier.random_seed, phase='valid')
+            epoch_valid_loss, epoch_valid_acc, epoch_valid_correct, epoch_valid_total, valid_labels, valid_preds = forward_pass_dataloader(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.scheduler, classifier.device, classifier.random_seed, phase='valid')
             classifier.valid_losses.append(epoch_valid_loss)
             classifier.valid_acc.append(epoch_valid_acc)
+            epoch_valid_metric = calculate_metric(metric=valid_metric, pred=valid_preds, target=valid_labels)
+            classifier.valid_metric.append(epoch_valid_metric)
 
             if epoch_valid_loss < classifier.valid_loss_min:
                 classifier.valid_loss_min = epoch_valid_loss
@@ -188,7 +195,15 @@ def fit_neural_network(classifier, epochs=20, valid=True, print_every= 1, target
                             " t_loss: {:.5f} |".format(epoch_train_loss)+
                             " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)
                             )
-
+                elif verbose == 0:
+                    message (
+                            " epoch: {:4}/{:4} |".format(e, epochs)+
+                            " t_loss: {:.5f} |".format(epoch_train_loss)+
+                            " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)+
+                            " t_acc: {:.5f} |".format(epoch_train_acc)+
+                            " v_acc: {:.5f} |".format(epoch_valid_acc)+
+                            " v_metric ({}): {:.5f} |".format(valid_metric, epoch_valid_metric)
+                            )
         else:
             if e % print_every == 0:
                 if verbose != 0:
@@ -296,3 +311,19 @@ def model_details(model, list=False, batch_size=1, channels=3, img_dim=224):
         return list(model.named_children())
     else:
         return summary(model, input_size=(batch_size, channels, img_dim, img_dim), depth=channels, col_names=["input_size", "output_size", "num_params"],)
+
+
+def calculate_metric(metric, pred, target):
+    metrics_dict =  {
+            'accuracy': accuracy_score(y_true=target, y_pred=pred),
+            'micro_precision': precision_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
+            'micro_recall': recall_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
+            'micro_f1': f1_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
+            'macro_precision': precision_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+            'macro_recall': recall_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+            'macro_f1': f1_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+            # 'samples_precision': precision_score(y_true=target, y_pred=pred, average='samples'),
+            # 'samples_recall': recall_score(y_true=target, y_pred=pred, average='samples'),
+            # 'samples_f1': f1_score(y_true=target, y_pred=pred, average='samples'),
+            }
+    return metrics_dict[metric]

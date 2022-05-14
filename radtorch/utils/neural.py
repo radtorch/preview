@@ -281,11 +281,12 @@ def calculate_metric(metric, pred, target):
         metrics_dict =  {
                 'accuracy': accuracy_score(y_true=target, y_pred=pred),
                 'micro_precision': precision_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
-                'micro_recall': recall_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
-                'micro_f1': f1_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
                 'macro_precision': precision_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+                'micro_recall': recall_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
                 'macro_recall': recall_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+                'micro_f1': f1_score(y_true=target, y_pred=pred, average='micro', zero_division=0),
                 'macro_f1': f1_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+                'weighted_f1': f1_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
                 'balanced_accuracy_score': balanced_accuracy_score(y_true=target, y_pred=pred)
                 # 'samples_precision': precision_score(y_true=target, y_pred=pred, average='samples'),
                 # 'samples_recall': recall_score(y_true=target, y_pred=pred, average='samples'),

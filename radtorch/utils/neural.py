@@ -7,7 +7,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm.notebook import tqdm
 from torchinfo import summary
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score
 
 def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, device, random_seed, phase):
     #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
@@ -133,40 +133,7 @@ def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accura
                             " v_metric ({}): {:.5f} (best: {:.5f})|".format(valid_metric, epoch_valid_metric, classifier.valid_metric_min)
 
                     )
-                #
-                #
-                # if verbose == 3:
-                #     message (
-                #             " epoch: {:4}/{:4} |".format(e, epochs)+
-                #             " t_loss: {:.5f} |".format(epoch_train_loss)+
-                #             " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)+
-                #             " v_metric dec: {:5} |".format(str(v_loss_dec))+
-                #             " v_metric below target: {:5} |".format(str(v_metric_below_target))+
-                #             " ckpt saved: {:5} ".format(str(save_ckpt))
-                #             )
-                # elif verbose == 2:
-                #     message (
-                #             " epoch: {:4}/{:4} |".format(e, epochs)+
-                #             " t_loss: {:.5f} |".format(epoch_train_loss)+
-                #             " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)+
-                #             " t_acc: {:.5f} |".format(epoch_train_acc)+
-                #             " v_acc: {:.5f} ({:4}/{:4})".format(epoch_valid_acc, epoch_valid_correct, epoch_valid_total)
-                #             )
-                # elif verbose == 1:
-                #     message (
-                #             " epoch: {:4}/{:4} |".format(e, epochs)+
-                #             " t_loss: {:.5f} |".format(epoch_train_loss)+
-                #             " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)
-                #             )
-                # elif verbose == 0:
-                #     message (
-                #             " epoch: {:4}/{:4} |".format(e, epochs)+
-                #             " t_loss: {:.5f} |".format(epoch_train_loss)+
-                #             " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,classifier.valid_loss_min)+
-                #             " t_metric: {:.5f} |".format(epoch_train_acc)+
-                #             " v_acc: {:.5f} |".format(epoch_valid_acc)+
-                #             " v_metric ({}): {:.5f} |".format(valid_metric, epoch_valid_metric)
-                #             )
+
         else:
             if e % print_every == 0:
                 if verbose != 0:
@@ -284,6 +251,7 @@ def calculate_metric(metric, pred, target):
                 'macro_precision': precision_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
                 'macro_recall': recall_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
                 'macro_f1': f1_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
+                'balanced_accuracy_score': balanced_accuracy_score(y_true=target, y_pred=pred)
                 # 'samples_precision': precision_score(y_true=target, y_pred=pred, average='samples'),
                 # 'samples_recall': recall_score(y_true=target, y_pred=pred, average='samples'),
                 # 'samples_f1': f1_score(y_true=target, y_pred=pred, average='samples'),

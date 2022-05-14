@@ -241,17 +241,17 @@ class ImageClassifier():
         sns.set(rc = {'figure.figsize':figsize})
         plot_sets = {
           'loss': ['train_loss', 'valid_loss'],
-          'accuracy': ['train_acc', 'valid_acc'],
-          'train': ['train_loss', 'train_acc'],
-          'valid': ['valid_loss', 'valid_acc'],
+          'metric': ['train_metric', 'valid_metric'],
+          'train': ['train_loss', 'train_metric'],
+          'valid': ['valid_loss', 'valid_metric'],
         }
         if data == 'all':
           fig, ax = plt.subplots(1,2)
           l = sns.lineplot(data = df[plot_sets['loss']], ax=ax[0])
-          a = sns.lineplot(data = df[plot_sets['accuracy']], ax=ax[1])
+          a = sns.lineplot(data = df[plot_sets['metric']], ax=ax[1])
           a.set_xlabel("epoch", fontsize = 10)
           l.set_xlabel("epoch", fontsize = 10)
-          a.set_ylabel("accuracy", fontsize = 10);
+          a.set_ylabel("metric", fontsize = 10);
           l.set_ylabel("loss", fontsize = 10);
           l.yaxis.set_major_locator(MaxNLocator(integer=True))
           a.yaxis.set_major_locator(MaxNLocator(integer=True))

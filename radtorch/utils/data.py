@@ -150,7 +150,9 @@ def save_checkpoint(classifier, epochs=None, current_epoch=None, output_file=Non
                       'optimizer_state_dict' : classifier.optimizer.state_dict(),
                       'train_losses': classifier.train_losses,
                       'valid_losses': classifier.valid_losses,
-                      'valid_loss_min': classifier.valid_loss_min,}
+                      'train_metric': classifier.train_metric,
+                      'valid_metric': classifier.train_metric,
+                      'valid_metric_best': classifier.valid_metric_best,}
         if output_file == None:
             output_file = classifier.name+'epoch_'+str(current_epoch)+'.checkpoint'
     elif classifier.type == 'sklearn':

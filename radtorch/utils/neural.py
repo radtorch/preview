@@ -13,8 +13,6 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
     #https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
     set_random_seed(random_seed)
     running_loss = 0.0
-    # running_correct = 0.0
-    # total = 0
     total_labels = []
     total_preds = []
 
@@ -33,10 +31,8 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
                         s.step()
             _, preds = torch.max(outputs.data, 1)
             running_loss += loss.item()
-            # running_correct += torch.sum(preds == labels.data)
             total_labels += labels.cpu().numpy().tolist()
             total_preds += preds.cpu().numpy().tolist()
-            # total += len(labels.data)
 
     elif phase == 'valid':
         model.eval()
@@ -47,90 +43,123 @@ def forward_pass_dataloader(model, dataloader, optimizer, criterion, scheduler, 
                 loss = criterion(outputs, labels)
                 _, preds = torch.max(outputs.data, 1)
                 running_loss += loss.item()
-                # running_correct += torch.sum(preds == labels.data)
                 total_labels += labels.cpu().numpy().tolist()
                 total_preds += preds.cpu().numpy().tolist()
-                # total += len(labels.data)
 
     loss = running_loss / len(dataloader)
-    # accuracy = (running_correct.double() / len(dataloader.dataset)).item()
-    # return loss, accuracy, running_correct, total, total_labels, total_preds
     return loss, total_labels, total_preds
 
+def set_target(classifier, train_metric, valid_metric, target_valid_metric):
 
-def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accuracy', epochs=20, valid=True, print_every= 1, target_valid_metric='lowest', auto_save_ckpt=False, verbose=0):
+    if valid_metric == 'loss':
+        classifier.valid_metric_best = np.Inf
+        if target_valid_metric == 'best':
+            classifier.target_valid_metric = np.Inf
+        else:
+            classifier.target_valid_metric = target_valid_metric
+    else:
+        classifier.valid_metric_best = 0.0
+        if target_valid_metric == 'best':
+            classifier.target_valid_metric = 0.0
+        else:
+            classifier.target_valid_metric = target_valid_metric
+    message(" Target Validation Metric set to "+ str(classifier.target_valid_metric))
 
+def is_resume(classifier, train_metric, valid_metric, target_valid_metric):
     if hasattr (classifier, 'current_epoch'):
-        start_epoch=classifier.current_epoch+1
+        start_epoch = classifier.current_epoch+1
         message(" Resuming training starting at epoch "+ str(start_epoch)+" on "+str(classifier.device))
         classifier.optimizer.load_state_dict(classifier.checkpoint['optimizer_state_dict'])
         message(" Optimizer state loaded successfully.")
     else:
         message(" Starting model training on "+str(classifier.device))
         start_epoch=0
-        classifier.train_losses, classifier.valid_losses = [], []
+        classifier.train_loss, classifier.valid_loss = [], []
         classifier.train_metric, classifier.valid_metric = [], []
-        classifier.valid_metric_min = np.Inf
+        set_target(classifier, train_metric, valid_metric, target_valid_metric)
+    return classifier, start_epoch
 
-        if target_valid_metric == 'lowest':
-            classifier.target_valid_metric = np.Inf
-        else:
-            classifier.target_valid_metric = target_valid_metric
+def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accuracy', epochs=20, valid=True, print_every= 1, target_valid_metric='best', auto_save_ckpt=False, verbose=1):
 
-        message(" Target Validation Metric set to "+ str(classifier.valid_metric_min))
-
-
+    classifier, start_epoch = is_resume(classifier, train_metric, valid_metric, target_valid_metric)
     classifier.original_model = deepcopy(classifier.model)
     classifier.model = classifier.model.to(classifier.device)
 
     for e in tqdm(range(start_epoch,epochs), desc='Traninig Model: '):
-        epoch_train_loss, epoch_train_labels, epoch_train_preds  = forward_pass_dataloader(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed, phase='train')
-        if train_metric == 'loss':
-            epoch_train_metric = epoch_train_loss
-        else:
-            epoch_train_metric = calculate_metric(metric=train_metric, pred=epoch_train_preds, target=epoch_train_labels)
-        classifier.train_losses.append(epoch_train_loss)
-        classifier.train_metric.append(epoch_train_metric)
+        #Train
+        e_train_loss, e_train_labels, e_train_preds  = forward_pass_dataloader(classifier.model, classifier.dataloader_train, classifier.optimizer, classifier.criterion, classifier.scheduler,classifier.device, classifier.random_seed, phase='train')
+        if train_metric == 'loss': e_train_metric = e_train_loss
+        else: e_train_metric = calculate_metric(metric=train_metric, pred=e_train_preds, target=e_train_labels)
+        classifier.train_loss.append(e_train_loss)
+        classifier.train_metric.append(e_train_metric)
 
+        #Valid
         if valid:
-            epoch_valid_loss, epoch_valid_labels, epoch_valid_preds = forward_pass_dataloader(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.scheduler, classifier.device, classifier.random_seed, phase='valid')
+            e_valid_loss, e_valid_labels, e_valid_preds = forward_pass_dataloader(classifier.model, classifier.dataloader_valid, classifier.optimizer, classifier.criterion, classifier.scheduler, classifier.device, classifier.random_seed, phase='valid')
+            if valid_metric == 'loss':e_valid_metric = e_valid_loss
+            else: e_valid_metric = calculate_metric(metric=valid_metric, pred=e_valid_preds, target=e_valid_labels)
+            classifier.valid_loss.append(e_valid_loss)
+            classifier.valid_metric.append(e_valid_metric)
+
             if valid_metric == 'loss':
-                epoch_valid_metric = epoch_valid_loss
+                if e_valid_metric < classifier.valid_metric_best:
+                    classifier.valid_metric_best = e_valid_metric
+                    classifier.best_model = deepcopy(classifier.model)
+                    if e_valid_metric <= classifier.target_valid_metric:
+                        if auto_save_ckpt:
+                            save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
+                            save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
+                #         else:
+                #             save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
+                #     else:
+                #         save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
+                # else:
+                #     save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
+
             else:
-                epoch_valid_metric = calculate_metric(metric=valid_metric, pred=epoch_valid_preds, target=epoch_valid_labels)
-            classifier.valid_losses.append(epoch_valid_loss)
-            classifier.valid_metric.append(epoch_valid_metric)
+                if e_valid_metric > classifier.valid_metric_best:
+                    classifier.valid_metric_best = e_valid_metric
+                    classifier.best_model = deepcopy(classifier.model)
+                    if e_valid_metric >= classifier.target_valid_metric:
+                        if auto_save_ckpt:
+                            save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
+                            save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
+                #         else:
+                #             save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
+                #     else:
+                #         save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
+                # else:
+                #     save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
 
 
-            if epoch_valid_metric < classifier.valid_metric_min:
-                classifier.valid_metric_min = epoch_valid_metric
-                classifier.best_model = deepcopy(classifier.model)
-                if epoch_valid_metric <= classifier.target_valid_metric:
-                    if auto_save_ckpt:
-                        save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
-                        save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
-                    else:
-                        save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
-                else:
-                    save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
-            else:
-                save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
+
+                #     if epoch_valid_metric => classifier.target_valid_metric:
+                #         if auto_save_ckpt:
+                #             save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
+                #             save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
+                #         else:
+                #             save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
+                #     else:
+                #         save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
+                # else:
+                #     save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
+
 
             if e % print_every == 0:
                 if verbose == 0:
                     message (
                             " epoch: {:4}/{:4} |".format(e, epochs)+
                             " t_loss: {:.5f} |".format(epoch_train_loss)+
-                            " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,np.min(classifier.valid_losses))
+                            " v_loss: {:.5f} (best: {:.5f}) |".format(e_valid_loss,classifier.valid_metric_best)
                     )
 
                 if verbose == 1:
                     message (
                             " epoch: {:4}/{:4} |".format(e, epochs)+
-                            " t_loss: {:.5f} |".format(epoch_train_loss)+
-                            " v_loss: {:.5f} (best: {:.5f}) |".format(epoch_valid_loss,np.min(classifier.valid_losses))+
-                            " t_metric ({}): {:.5f} |".format(train_metric, epoch_train_metric)+
-                            " v_metric ({}): {:.5f} (best: {:.5f})|".format(valid_metric, epoch_valid_metric, classifier.valid_metric_min)
+                            " t_loss: {:.5f} |".format(e_train_loss)+
+                            " t_metric/{}: {:.5f} |".format(train_metric, e_train_metric)+
+                            " v_loss: {:.5f} (best: {:.5f}) |".format(e_valid_loss,np.min(classifier.valid_loss))+
+                            " v_metric/{}: {:.5f} (best: {:.5f})|".format(valid_metric, e_valid_metric, classifier.valid_metric_best)
 
                     )
 
@@ -139,10 +168,10 @@ def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accura
                 if verbose != 0:
                     message(
                             " epoch: {:4}/{:4} |".format(e, epochs)+
-                            " t_loss: {:.5f} |".format(epoch_train_loss)
+                            " t_loss: {:.5f} |".format(e_train_loss)
                             )
 
-        metrics_dict = {'train_loss':epoch_train_loss, 'train_metric':epoch_train_metric, 'valid_loss':epoch_valid_loss, 'valid_metric':epoch_valid_metric}
+        metrics_dict = {'train_loss':e_train_loss, 'train_metric':e_train_metric, 'valid_loss':e_valid_loss, 'valid_metric':e_valid_metric}
 
         if classifier.scheduler != [None]:
             for s in classifier.scheduler:
@@ -156,11 +185,17 @@ def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accura
         if e+1 == epochs:
             message(' Training Finished Successfully!')
 
-    if classifier.valid_metric_min > classifier.target_valid_metric:
-        message(current_time()+" CAUTION: Achieved minimum validation metric "+str(classifier.valid_metric_min), " is not less than the set target metric of "+str(classifier.target_valid_metric))
+    if valid_metric == 'loss':
+        if classifier.valid_metric_best > classifier.target_valid_metric:
+            msg = " CAUTION: Achieved validation metric "+str(classifier.valid_metric_best)+" is not less than the set target metric of "+str(classifier.target_valid_metric)
+            message(msg=msg)
+    else:
+        if classifier.valid_metric_best < classifier.target_valid_metric:
+            msg = " CAUTION: Achieved validation metric "+str(classifier.valid_metric_best)+" is not more than the set target metric of "+str(classifier.target_valid_metric)
+            message(msg=msg)
 
-    classifier.train_logs=pd.DataFrame({"train_loss": classifier.train_losses,
-                                        "valid_loss" : classifier.valid_losses,
+    classifier.train_logs=pd.DataFrame({"train_loss": classifier.train_loss,
+                                        "valid_loss" : classifier.valid_loss,
                                         "train_metric" : classifier.train_metric,
                                         "valid_metric" : classifier.valid_metric
                                         })

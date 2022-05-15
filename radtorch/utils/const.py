@@ -33,6 +33,10 @@ model_url = {
     "densenet169": "https://download.pytorch.org/models/densenet169-b2777c0a.pth",
     "densenet201": "https://download.pytorch.org/models/densenet201-c1103571.pth",
     "densenet161": "https://download.pytorch.org/models/densenet161-8d451a50.pth",
+    "convnext_tiny": "https://download.pytorch.org/models/convnext_tiny-983f1562.pth",
+    "convnext_small": "https://download.pytorch.org/models/convnext_small-0c510722.pth",
+    "convnext_base": "https://download.pytorch.org/models/convnext_base-6075fbad.pth",
+    "convnext_large": "https://download.pytorch.org/models/convnext_large-ea097f82.pth",
     }
 
 supported_models= list(model_url.keys())

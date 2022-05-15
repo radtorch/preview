@@ -228,6 +228,12 @@ class ModelBase(object): #OK
             self.model.classifier[1] =  nn.Linear(in_features=efficient_input_output[version][1], out_features=self.out_classes, bias=True)
             for p in self.model.classifier.parameters(): p.requires_grad = True
 
+        elif 'convnext' in self.model_arch:
+            if self.in_channels != 3:
+                self.model.features[0][0] = nn.Conv2d(self.in_channels, 96, kernel_size=(4, 4), stride=(4, 4))
+            self.model.classifier[2] =  nn.Linear(in_features=768, out_features=self.out_classes, bias=True)
+            for p in self.model.classifier.parameters(): p.requires_grad = True
+
         if self.unfreeze_all:
             for p in self.model.parameters():
                 p.requires_grad = True

@@ -27,7 +27,7 @@ setup(
                         'pillow',
                         'sklearn',
                         'tqdm',
-                        'seaborn-image'
+                        'seaborn-image',
                         'imblearn'
                         ],
 

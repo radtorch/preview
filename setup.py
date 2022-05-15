@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
       name='radtorch',
-      version='1.0.0',
+      version='1.1.0b',
       version_date='04.15.2022',
       description='RADTorch, The Medical Imaging Machine Learning Framework',
       url='https://www.radtorch.com',
@@ -28,6 +28,7 @@ setup(
                         'sklearn',
                         'tqdm',
                         'seaborn-image'
+                        'imblearn'
                         ],
 
 

@@ -111,7 +111,6 @@ class ImageClassifier():
             if not name: self.name = current_time()+'_classifier_'
             else: self.name = name
 
-            # if str(type(model))[8:].startswith('sklearn'):
             if 'sklearn' in str(type(model)):
 
                 self.type, self.feature_extractors = 'sklearn', {i:FeatureExtractor(model_arch=feature_extractor_arch, dataset=dataset, subset=i) for i in dataset.loaders.keys()}
@@ -228,13 +227,6 @@ class ImageClassifier():
             message(' Trained model saved successfully.')
 
     def view_train_logs(self, data='all', figsize=(20,8)):
-        # assert self.type == 'torch', ('Train Logs not available with sklearn classifiers.')
-        # plt.figure(figsize=figsize)
-        # sns.set_style("darkgrid")
-        # if data == 'all': p = sns.lineplot(data = self.train_logs)
-        # else: p = sns.lineplot(data = self.train_logs[data].tolist())
-        # p.set_xlabel("epoch", fontsize = 10)
-        # p.set_ylabel("loss", fontsize = 10);
         assert self.type == 'torch', ('Train Logs not available with sklearn classifiers.')
         df = self.train_logs
         sns.set_style("darkgrid")

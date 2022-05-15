@@ -45,7 +45,7 @@ class ImageObject(): #OK
 
 class ImageDataset(Dataset): #OK
 
-    def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,class_subset=False, out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle_train=True,shuffle_valid=False,weighted_sampler=False,num_workers=0,): #OK
+    def __init__(self,folder,name=None,label_table=None,instance_id=False,add_extension=False,class_subset=False, sampling_strategy=False, out_channels=1,WW=None,WL=None,path_col="path",label_col="label",extension="dcm",transforms=None,random_state=100,sample=1.0,split=False,ignore_zero_img=False,normalize=True,batch_size=16,shuffle_train=True,shuffle_valid=False,weighted_sampler=False,num_workers=0,): #OK
 
         """
         Creates pytorch dataset(s) and dataloader(s) objects from a parent folder. Use this class for image tasks that invovles handling each single image as a single instance of your dataset.
@@ -154,6 +154,7 @@ class ImageDataset(Dataset): #OK
 
         self.split = split
         self.sample = sample
+        self.sampling_strategy = sampling_strategy
 
         self.transform = transforms
         if self.transform == None:
@@ -219,6 +220,14 @@ class ImageDataset(Dataset): #OK
                 self.train_percent = 1.0 - temp_size
                 self.table_train, temp = train_test_split(self.table,test_size=temp_size,stratify=self.table[[self.label_col]],random_state=self.random_state,)
                 self.table_valid, self.table_test = train_test_split(temp,test_size=self.test_percent / temp_size, stratify=temp[[self.label_col]],random_state=self.random_state,)
+
+                if self.sampling_strategy:
+                    self.table_train, self.table_train_orig = balance_classes(df=self.table_train, sampling_strategy=self.sampling_strategy, label_col=self.label_col)
+                    self.table_train.index = np.arange(0,len(self.table_train))
+                    self.table_valid.index = np.arange(len(self.table_train), len(self.table_train)+len(self.table_valid))
+                    self.table_test.index = np.arange(len(self.table_valid),  len(self.table_valid)+len(self.table_test))
+                    self.table = pd.concat([self.table_train, self.table_valid, self.table_test])
+
                 self.idx_train, self.idx_valid, self.idx_test = (self.table_train.index.tolist(),self.table_valid.index.tolist(),self.table_test.index.tolist(),)
                 self.dataset_test = torch.utils.data.Subset(self, self.idx_test)
                 self.dataloader_test = torch.utils.data.DataLoader(self.dataset_test,batch_size=self.batch_size,shuffle=False,num_workers=self.num_workers,)
@@ -229,6 +238,13 @@ class ImageDataset(Dataset): #OK
             else:
                 self.train_percent = 1.0 - self.valid_percent
                 self.table_train, self.table_valid = train_test_split(self.table,test_size=self.valid_percent,stratify=self.table[[self.label_col]],random_state=self.random_state,)
+
+                if self.sampling_strategy:
+                    self.table_train, self.table_train_orig = balance_classes(df=self.table_train, sampling_strategy=self.sampling_strategy, label_col=self.label_col)
+                    self.table_train.index = np.arange(0,len(self.table_train))
+                    self.table_valid.index = np.arange(len(self.table_train), len(self.table_train)+len(self.table_valid))
+                    self.table = pd.concat([self.table_train, self.table_valid])
+
                 self.idx_train, self.idx_valid = (self.table_train.index.tolist(),self.table_valid.index.tolist(),)
 
             self.dataset_train = torch.utils.data.Subset(self, self.idx_train)
@@ -240,6 +256,10 @@ class ImageDataset(Dataset): #OK
             self.tables["valid"] = self.table_valid
         else:
             self.table_train = self.table
+            if self.sampling_strategy:
+                self.table_train, self.table_train_orig = balance_classes(df=self.table_train, sampling_strategy=self.sampling_strategy, label_col=self.label_col)
+                self.table_train.index = np.arange(0,len(self.table_train))
+                self.table = pd.concat([self.table_train])
             self.idx_train = self.table_train.index.tolist()
             self.dataset_train = self
 
@@ -258,8 +278,9 @@ class ImageDataset(Dataset): #OK
 
 
         if weighted_sampler:
+            assert (self.sampling_strategy==False), "Error! `Weighted_sampler` should not be combined with `sampling_strategy`."
             sampler = torch.utils.data.sampler.WeightedRandomSampler(self.sampler_weight, len(self.sampler_weight))
-            self.dataloader_train = torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle_train,num_workers=self.num_workers,sampler=sampler,)
+            self.dataloader_train =  torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle_train,num_workers=self.num_workers,sampler=sampler,)
 
         else:
             self.dataloader_train = torch.utils.data.DataLoader(self.dataset_train,batch_size=self.batch_size,shuffle=self.shuffle_train,num_workers=self.num_workers,)
@@ -267,6 +288,9 @@ class ImageDataset(Dataset): #OK
         self.datasets["train"] = self.dataset_train
         self.loaders["train"] = self.dataloader_train
         self.tables["train"] = self.table_train
+
+
+
 
     def __len__(self): #OK
         """

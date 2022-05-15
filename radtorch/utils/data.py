@@ -6,7 +6,8 @@ import SimpleITK as sitk
 from PIL import Image
 from pathlib import Path
 from tqdm.notebook import tqdm
-
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
 
 from .general import *
 from .const import *
@@ -228,3 +229,16 @@ def extract_dicom_tags(root, tags, file_ext='dcm'):
     for k, v in tag_info.items():
         output[k] = v
     return output
+
+
+def balance_classes(df, sampling_strategy, label_col):
+    X = df[[i for i in df.columns if i != label_col]]
+    y = df[label_col]
+    if sampling_strategy == 'minority':
+        sampler = RandomOverSampler(random_state=100)
+        X_resampled, y_resampled = sampler.fit_resample(X, y)
+    elif sampling_strategy == 'majority':
+        sampler = RandomUnderSampler(random_state=100)
+        X_resampled, y_resampled = sampler.fit_resample(X, y)
+    X_resampled[label_col] = y_resampled
+    return X_resampled,  df

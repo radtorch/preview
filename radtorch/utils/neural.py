@@ -109,12 +109,7 @@ def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accura
                         if auto_save_ckpt:
                             save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
                             save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
-                #         else:
-                #             save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
-                #     else:
-                #         save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
-                # else:
-                #     save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
+
 
             else:
                 if e_valid_metric > classifier.valid_metric_best:
@@ -124,26 +119,6 @@ def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accura
                         if auto_save_ckpt:
                             save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
                             save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
-                #         else:
-                #             save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
-                #     else:
-                #         save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
-                # else:
-                #     save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
-
-
-
-                #     if epoch_valid_metric => classifier.target_valid_metric:
-                #         if auto_save_ckpt:
-                #             save_checkpoint(classifier=classifier, epochs=epochs, current_epoch=e)
-                #             save_ckpt, v_metric_dec, v_metric_below_target = True, True, True
-                #         else:
-                #             save_ckpt, v_metric_dec, v_metric_below_target = False, True, True
-                #     else:
-                #         save_ckpt, v_metric_dec, v_metric_below_target = False, True, False
-                # else:
-                #     save_ckpt, v_metric_dec, v_metric_below_target = False, False, False
-
 
             if e % print_every == 0:
                 if verbose == 0:
@@ -157,9 +132,9 @@ def fit_neural_network(classifier, train_metric='accuracy', valid_metric='accura
                     message (
                             " epoch: {:4}/{:4} |".format(e, epochs)+
                             " t_loss: {:.5f} |".format(e_train_loss)+
-                            " t_metric/{}: {:.5f} |".format(train_metric, e_train_metric)+
+                            " t_{}: {:.5f} |".format(train_metric, e_train_metric)+
                             " v_loss: {:.5f} (best: {:.5f}) |".format(e_valid_loss,np.min(classifier.valid_loss))+
-                            " v_metric/{}: {:.5f} (best: {:.5f})|".format(valid_metric, e_valid_metric, classifier.valid_metric_best)
+                            " v_{}: {:.5f} (best: {:.5f})|".format(valid_metric, e_valid_metric, classifier.valid_metric_best)
 
                     )
 
@@ -288,9 +263,6 @@ def calculate_metric(metric, pred, target):
                 'macro_f1': f1_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
                 'weighted_f1': f1_score(y_true=target, y_pred=pred, average='macro', zero_division=0),
                 'balanced_accuracy_score': balanced_accuracy_score(y_true=target, y_pred=pred)
-                # 'samples_precision': precision_score(y_true=target, y_pred=pred, average='samples'),
-                # 'samples_recall': recall_score(y_true=target, y_pred=pred, average='samples'),
-                # 'samples_f1': f1_score(y_true=target, y_pred=pred, average='samples'),
                 }
         return metrics_dict[metric]
     else:

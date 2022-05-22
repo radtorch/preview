@@ -8,6 +8,7 @@ from pathlib import Path
 from tqdm.notebook import tqdm
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
+from sklearn.model_selection import train_test_split
 
 from .general import *
 from .const import *
@@ -242,3 +243,9 @@ def balance_classes(df, sampling_strategy, label_col):
         X_resampled, y_resampled = sampler.fit_resample(X, y)
     X_resampled[label_col] = y_resampled
     return X_resampled,  df
+
+
+def split_df(df, train, valid, test):
+    train_df, temp_df = train_test_split(df,test_size=(valid+test),random_state=100)
+    valid_df, test_df = train_test_split(temp_df,test_size=(test/(valid+test)),random_state=100)
+    return train_df, valid_df, test_df

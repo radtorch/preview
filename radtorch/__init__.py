@@ -1,4 +1,4 @@
-from .data import ImageObject, ImageDataset, VolumeObject, VolumeDataset
+from .data import ImageObject, MultiClass2dDataset, VolumeObject, MultiClass3dDataset
 from .model import Model
 from .classifier import ImageClassifier
 from .extractor import FeatureExtractor
